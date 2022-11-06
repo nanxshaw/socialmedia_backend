@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const config = require("../config/auth");
 const n_datetime = require('node-datetime');
 const Comment = require('../models/CommentModels');
+const User = require('../models/UserModels');
 
 //key secret
 const jwtKey = config.secret;
@@ -21,6 +22,12 @@ exports.all = async (req, res) => {
         Content.hasMany(Comment, { foreignKey: 'id_content' });
         Comment.belongsTo(Content, { foreignKey: 'id_content' });
 
+        Content.belongsTo(User, { foreignKey: 'id_users' });
+        User.belongsTo(Content, { foreignKey: 'id_users' });
+        
+        Comment.belongsTo(User, { foreignKey: 'id_users' });
+        User.belongsTo(Comment, { foreignKey: 'id_users' });
+
         const result = await Content.findAll({
             include: [
                 {
@@ -28,6 +35,12 @@ exports.all = async (req, res) => {
                 },
                 {
                     model: Comment,
+                    include: [
+                        { model: User, }
+                    ]
+                },
+                {
+                    model: User,
                 }
             ],
         });

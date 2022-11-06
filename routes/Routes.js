@@ -22,7 +22,7 @@ module.exports = app => {
   // Content
   router.get("/content", [authJwt.verifyToken], content.all);
   router.get("/content/:id", [authJwt.verifyToken], content.find_byId);
-  router.post("/content", [authJwt.verifyToken,upload.uploadFile.array('image')], content.insert);
+  router.post("/content", [authJwt.verifyToken,upload.uploadContentFile.array('image')], content.insert);
   router.put("/content", [authJwt.verifyToken], content.update);
   router.delete("/content/:id", [authJwt.verifyToken], content.delete);
   // Comment
