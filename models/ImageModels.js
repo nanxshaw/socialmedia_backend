@@ -3,7 +3,7 @@ const db = require("./db");
 
 const { DataTypes } = Sequelize;
 
-const Image = db.define('T_IMAGE', {
+const Image = db.define('image', {
     id_image: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
@@ -13,10 +13,7 @@ const Image = db.define('T_IMAGE', {
     image: {
         type: DataTypes.STRING
     },
-    number: {
-        type: DataTypes.INTEGER
-    },
-    id_detail_user: {
+    id_content: {
         type: DataTypes.INTEGER
     },
 }, {

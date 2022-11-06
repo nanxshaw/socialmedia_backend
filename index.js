@@ -17,9 +17,13 @@ app.use(express.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static('public')); 
+app.use('/image_profile', express.static('assets/user'));
+app.use('/images', express.static('assets/image'));
+
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to bezkoder application." });
+  res.json({ message: "Welcome to  application." });
 });
 
 require("./routes/Routes")(app);

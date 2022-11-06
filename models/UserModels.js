@@ -3,8 +3,8 @@ const db = require("./db");
 
 const { DataTypes } = Sequelize;
 
-const User = db.define('T_USER', {
-    id_user: {
+const User = db.define('users', {
+    id_users: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
         allowNull: false,
@@ -16,20 +16,26 @@ const User = db.define('T_USER', {
     email: {
         type: DataTypes.STRING
     },
-    phone: {
-        type: DataTypes.STRING
-    },
     password: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: true,
     },
-    password_old: {
-        type: DataTypes.STRING
-    },
-    id_detail_user: {
-        type: DataTypes.INTEGER
+    image: {
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     token: {
         type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    status_login: {
+        type: DataTypes.TEXT,
+    },
+    created_at: {
+        type: DataTypes.STRING,
+    },
+    updated_at: {
+        type: DataTypes.STRING,
     },
 }, {
     freezeTableName: true,
@@ -37,6 +43,4 @@ const User = db.define('T_USER', {
     updatedAt: false,
 
 });
-
-
 module.exports = User;

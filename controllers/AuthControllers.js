@@ -3,11 +3,8 @@ const Op = require('Sequelize').Op;
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const config = require("../config/auth");
-const DetailUser = require("../models/DetailUserModels");
-const Image = require('../models/ImageModels');
 const User = require("../models/UserModels");
 const n_datetime = require('node-datetime');
-const nodemailer = require('nodemailer');
 
 //key secret
 const jwtKey = config.secret;
@@ -15,9 +12,6 @@ const jwtKey = config.secret;
 //datetime
 const dt = n_datetime.create();
 const datetime_now = dt.format('Y-m-d H:M:S');
-
-//expired JWT
-const jwtExpirySeconds = 86400;
 
 exports.login = async (req, res) => {
     let body = req.body;
@@ -33,52 +27,41 @@ exports.login = async (req, res) => {
                 verify = false;
             }
         } else {
-            message = 'Username / No Telp / E-mail anda kosong!';
+            message = 'Username / E-mail anda kosong!';
             verify = false;
         }
-        User.belongsTo(DetailUser, { as: "detail_user", foreignKey: 'id_detail_user' });
-        DetailUser.hasMany(User, { foreignKey: "id_detail_user" });
-
-        User.hasMany(Image, { as: "image", foreignKey: 'id_detail_user' });
-        Image.belongsTo(User, { foreignKey: 'id_detail_user' });
 
         if (verify == true) {
             const result = await User.findAll({
                 attributes: {
-                    exclude: ['password', 'password_old']
+                    exclude: ['password']
                 },
-                include: [
-                    {
-                        model: DetailUser,
-                        as: "detail_user",
-                        required: true,
-                    },
-                    {
-                        model: Image,
-                        as: "image",
-                    }
-                ],
                 where: {
                     [Op.or]: {
                         username: body.user,
                         email: body.user,
-                        phone: body.user,
                     },
                     password: pwd
                 },
             });
-            const token = jwt.sign({
-                id_detail_user: result[0].id_detail_user
-            }, jwtKey, {
-                algorithm: "HS256",
-                expiresIn: jwtExpirySeconds,
-            })
-            result[0].token = token;
-            res.send({
-                status: 200,
-                message: message,
-                data: result[0]
-            });
+            if(result.length > 0){
+                const token = jwt.sign({
+                    id_users: result[0].id_users
+                }, jwtKey, {
+                    algorithm: "HS256",
+                })
+                result[0].token = token;
+                res.send({
+                    status: 200,
+                    message: message,
+                    data: result[0]
+                });
+            }else {
+                res.send({
+                    status: 401,
+                    message: '(Username / E-mail) or password is wrong',
+                });
+            }
         } else {
             res.send({
                 status: 401,
@@ -92,59 +75,26 @@ exports.login = async (req, res) => {
 
 exports.register = async (req, res) => {
     let body = req.body;
+    var file = req.file;
     var pwd = crypto.createHash('md5').update(body.password).digest('hex');
     try {
-        const token = jwt.sign({ username: body.username }, jwtKey, {
-            algorithm: "HS256",
-            expiresIn: jwtExpirySeconds,
-        })
         var message = 'success';
         var verify = false;
         if (body.username != null && body.username != '') {
-            if (body.phone != null && body.phone != '') {
-                if (body.email != null && body.email != '') {
-                    if (body.password != null && body.password != '') {
-                        if (body.first_name != null && body.first_name != '') {
-                            if (body.last_name != null && body.last_name != '') {
-                                if (body.birthday != null && body.birthday != '') {
-                                    if (body.gender != null && body.gender != '') {
-                                        if (body.city != null && body.city != '') {
-                                            if (body.image != null && body.image != '') {
-                                                verify = true;
-                                            } else {
-                                                message = 'Image anda kosong!';
-                                                verify = false;
-                                            }
-                                        } else {
-                                            message = 'City anda kosong!';
-                                            verify = false;
-                                        }
-                                    } else {
-                                        message = 'Gender anda kosong!';
-                                        verify = false;
-                                    }
-                                } else {
-                                    message = 'Birthday anda kosong!';
-                                    verify = false;
-                                }
-                            } else {
-                                message = 'Last Name anda kosong!';
-                                verify = false;
-                            }
-                        } else {
-                            message = 'First Name anda kosong!';
-                            verify = false;
-                        }
+            if (body.email != null && body.email != '') {
+                if (body.password != null && body.password != '') {
+                    if (file.filename != null && file.filename != '') {
+                        verify = true;
                     } else {
-                        message = 'Password anda kosong!';
+                        message = 'Image anda kosong!';
                         verify = false;
                     }
                 } else {
-                    message = 'E-mal anda kosong!';
+                    message = 'Password anda kosong!';
                     verify = false;
                 }
             } else {
-                message = 'No Telp anda kosong!';
+                message = 'E-mal anda kosong!';
                 verify = false;
             }
         } else {
@@ -153,38 +103,20 @@ exports.register = async (req, res) => {
         }
 
         if (verify == true) {
-            var data_detail_user = {
-                first_name: body.first_name,
-                last_name: body.last_name,
-                birthday: body.birthday,
-                gender: body.gender,
-                city: body.city,
-                created_date: datetime_now,
-                updated_date: datetime_now
-            }
-            const detail_user = await DetailUser.create(data_detail_user);
-            var data_user = {
+            var data = {
                 username: body.username,
-                phone: body.phone,
                 email: body.email,
                 password: pwd,
-                password_old: pwd,
-                id_detail_user: detail_user.id_detail_user,
-                token
+                image: file.filename,
+                status_login: 'userpass',
+                created_at: datetime_now,
+                updated_at: datetime_now
             }
-            var data_image = {
-                image: body.image,
-                number: 1,
-                id_detail_user: detail_user.id_detail_user,
-            }
-            await User.create(data_user);
-            await Image.create(data_image);
-            data_user.detail_user = data_detail_user;
-            data_user.image = data_image;
+            await User.create(data);
             res.send({
                 status: 200,
                 message: message,
-                data: data_user
+                data: data
             });
         } else {
             res.send({
@@ -197,52 +129,49 @@ exports.register = async (req, res) => {
     }
 }
 
-exports.forgot_password = async (req, res) => {
+exports.logsocial = async (req, res) => {
     let body = req.body;
     try {
-        const token = jwt.sign({ username: body.username }, jwtKey, {
-            algorithm: "HS256",
-            expiresIn: jwtExpirySeconds,
-        })
-        var message = 'success';
-        var verify = false;
-        if ((body.username != null && body.username != '') || (body.phone != null && body.phone != '') || (body.email != null && body.email != '')) {
-            verify = true;
+        var user = body.email.split('@')[0] + Math.floor(Math.random() * 999);
+        const cek_user = await User.findAll({
+            attributes: {
+                exclude: ['password']
+            },
+            where: {
+                [Op.or]: {
+                    username: user,
+                    email: body.email,
+                },
+                status_login: !'userpass'
+            },
+        });
+        var json = [];
+        if (cek_user.length > 0) {
+            const token = jwt.sign({ id_users: cek_user[0].id_user }, jwtKey, { algorithm: "HS256" });
+            cek_user[0].token = token
+            json = cek_user[0];
         } else {
-            message = 'Username / No Telp / E-mail anda kosong!';
-            verify = false;
+            var data = {
+                username: user,
+                email: body.email,
+                status_login: body.status_login,
+                created_at: datetime_now,
+                updated_at: datetime_now
+            }
+            const regis = await User.create(data);
+            const token = jwt.sign({ id_users: regis.id_user }, jwtKey, { algorithm: "HS256" });
+            var data_token = {
+                token: token
+            }
+            await User.update(data_token, { where: { id_users: regis.id_users } });
+            json = data;
+            json.token = token;
         }
-
-        if (verify == true) {
-            var transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: 'dynamicheard@gmail.com',
-                    pass: 'f1reguart'
-                }
-            });
-
-            var mailOptions = {
-                from: 'dynamicheard@gmail.com',
-                to: 'nanxshaw@gmail.com',
-                subject: 'Sending Email using Nodejs',
-                text: 'That was easy!'
-            };
-
-            transporter.sendMail(mailOptions, (err, info) => {
-                if (err) throw err;
-                console.log('Email sent: ' + info.response);
-                res.send({
-                    status: 200,
-                    message: message,
-                });
-            });
-        } else {
-            res.send({
-                status: 401,
-                message: message,
-            });
-        }
+        res.send({
+            status: 200,
+            message: 'success',
+            data: json
+        });
     } catch (err) {
         console.log(err);
     }
